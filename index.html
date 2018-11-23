@@ -1,0 +1,536 @@
+<!doctype html>
+<html class="no-js">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="description" content="">
+		<meta name="keywords" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+		<title>黑猪360</title>
+		<meta name="renderer" content="webkit">
+		<meta http-equiv="Cache-Control" content="no-siteapp" />
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<link rel="stylesheet" href="assets/css/amazeui.css">
+		<link rel="stylesheet" href="assets/css/app.css">
+		<link rel="stylesheet" href="assets/css/iconfont.css">
+		<script type="text/javascript" src="assets/js/jquery.min.js"></script>
+		<!--开始-->
+		<link rel="stylesheet" href="assets/css/main.css" type="text/css" media="screen, projection" />
+		<script type="text/javascript" src="assets/js/custom-scripts.js"></script>
+		<!--结束-->
+		<script type="text/javascript">
+//			开始
+			$(window).load(function(){
+				universalPreloaderRemove();
+				rotate();
+			    dogRun();
+				dogTalk();
+			});
+//			结束
+			var apiRoot = "https://heizhu360.datbc.com/wx/";
+			//var apiRoot = "http://192.168.1.28:8082/";
+			var wxUrl = apiRoot+"getBlockChain";
+			var wxSimpleUrl = apiRoot+"getSimpleBlockChain";
+			var secret = '';
+			var ua = navigator.userAgent.toLowerCase();  
+			var isWeixin = ua.indexOf('micromessenger') != -1; 
+			if (!isWeixin) {  
+				var opened = window.open('wxError.html', '_self');
+			}
+            $(function(){
+				/*禁用微信分享功能 */  
+				function onBridgeReady() {  
+					WeixinJSBridge.call('hideOptionMenu');
+				}  
+			  
+				if (typeof WeixinJSBridge == "undefined") {  
+					if (document.addEventListener) {  
+						document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);  
+					} else if (document.attachEvent) {  
+						document.attachEvent('WeixinJSBridgeReady', onBridgeReady);  
+						document.attachEvent('onWeixinJSBridgeReady', onBridgeReady);  
+					}  
+				} else {  
+					onBridgeReady();  
+				}  
+				if (isWeixin) {  
+					window.alert = function(name){  
+						var iframe = document.createElement("IFRAME");  
+						iframe.style.display="none";  
+						iframe.setAttribute("src", 'data:text/plain,');  
+						document.documentElement.appendChild(iframe);  
+						window.frames[0].window.alert(name);  
+						iframe.parentNode.removeChild(iframe);  
+					}  
+				}
+            	secret = getURLParameter("secret");
+				$('#footer').hide();
+				$('.am-container').hide();
+            	$('.foot').click(function(){
+            		    $('.animation').fadeOut(function(){
+            			$('.am-container').fadeIn();
+            			$('#footer').fadeIn();
+            			$("#startAnimation").innerHtml = "";
+//				　　　　var body = document.getElementById("body_id");
+//				　　　　body.style.overflow = "scroll";
+            		});
+            	});
+				getAjax();
+            });
+			//点击族谱
+			function clickGenealogy(pigId){
+				getSimpleAjax(pigId);
+			}
+			function getURLParameter(name) { 
+				return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null; 
+			}
+			/**
+			* 滚动穿透问题
+			*/
+			var scrollTop = document.scrollingElement ? document.scrollingElement.scrollTop : document.body.scrollTop;
+			function afterOpen() {
+				scrollTop = document.scrollingElement ? document.scrollingElement.scrollTop : document.body.scrollTop
+				document.body.classList.add('modal-open')
+				document.body.style.top = -scrollTop + 'px'
+			}
+			function beforeClose() {
+				document.body.classList.remove('modal-open')
+				document.body.removeAttribute('style')
+				if (document.scrollingElement) {
+					document.scrollingElement.scrollTop = scrollTop
+				} else {
+					document.body.scrollTop = scrollTop
+				}
+			}
+			function hideMask() {
+				$('.mask').hide()
+				beforeClose();
+			}
+			//查询详细信息
+			function getAjax(){
+			 	$.ajax({ 
+				   	type: 'POST', 
+				   	//data: {state:state,q:q,op:op},
+				   	data: {secret:secret},
+				   	url: wxUrl,
+			        success: function (data) {
+			        	if(data.errno == 0){
+							if(!data.data){
+								window.open('wxError.html', '_self');
+							}
+			        		$("#qrCodeId").html(secret);
+			        		//品种
+			        		$("#varieties_id").html(data.data.varieties);
+			        		//性别 0：公 1：母
+			        		$("#pigGender_id").html(data.data.pigGender == 0?"公":"母");
+			        		//出生
+			        		$("#birth_id").html(data.data.birth.split("T")[0]);
+			        		//生长周期
+			        		$("#growthCycle_id").html(data.data.growthCycle+"天");
+			        		//父亲
+			        		$("#pigFather_id").html(data.data.pigFather);
+			        		//母亲
+			        		$("#pigMother_id").html(data.data.pigMother);
+			        		//区块链地址
+			        		$("#blockChain_id").html(data.data.blockChain);
+			        		//ID号码
+			        		$("#idNumber_id").html(data.data.idNumber);
+			        		
+			        		//兄弟姐妹个数
+			        		$("#brotherNumbers_id").html(data.data.brotherNumbers);
+			        		
+			        		//族谱开始-----
+							$(".father_id").click(function() {
+								if(isEmpty(data.data.genealogy[0])){
+									alert("小猪的父亲被外星人抓走了");
+								}else{
+									getSimpleAjax(data.data.genealogy[0]);
+								}
+							})
+							$(".mother_id").click(function() {
+								if(isEmpty(data.data.genealogy[1])){
+									alert("小猪的母亲被外星人抓走了");
+								}else{
+									getSimpleAjax(data.data.genealogy[1]);
+								}
+							})
+							$(".grandpa_id").click(function() {
+								if(isEmpty(data.data.genealogy[2])){
+									alert("小猪的爷爷被外星人抓走了");
+								}else{
+									getSimpleAjax(data.data.genealogy[2]);
+								}
+							})
+							$(".grandma_id").click(function() {
+								if(isEmpty(data.data.genealogy[3])){
+									alert("小猪的奶奶被外星人抓走了");
+								}else{
+									getSimpleAjax(data.data.genealogy[3]);
+								}
+							})
+							$(".grandpa_m_id").click(function() {
+								if(isEmpty(data.data.genealogy[4])){
+									alert("小猪的外公被外星人抓走了");
+								}else{
+									getSimpleAjax(data.data.genealogy[4]);
+								}
+							})
+							$(".grandma_m_id").click(function() {
+								if(isEmpty(data.data.genealogy[5])){
+									alert("小猪的外婆被外星人抓走了");
+								}else{
+									getSimpleAjax(data.data.genealogy[5]);
+								}
+							})
+							//族谱结束-----
+							
+							//转栏
+							$("#hurdles_id").html();
+							var changeColumns = data.data.changeColumns;
+							if(changeColumns){
+								for(var i in changeColumns){
+			        			$("#hurdles_id").append('<li><div class="fl_box"><div class="status">' + (changeColumns[i].pigStatus === 0 ? '出生' : changeColumns[i].pigStatus === 45 ? '转保育栏' : changeColumns[i].pigStatus === 46 ? '转育肥栏' : changeColumns[i].pigStatus === 55 ? '出栏' : '到店')  + '</div><p class="time">'+changeColumns[i].columnTime.split("T")[0].replace(/\-/g, '.')+'</p></div><img src="'+ changeColumns[i].picture +'" /></li>');
+			        			}
+							}
+							
+							//检测报告
+							$("#quarantine_id").html();
+							var quarantine = data.data.quarantine;
+							if(quarantine){
+								for(var i in quarantine){
+			        			$("#quarantine_id").children('li').append('<p>'+quarantine[i].key+'<span>'+quarantine[i].value+'</span></p>');
+			        			}
+							}
+							
+							//分享头像
+							$("#shareImgUrl_id").html();
+							var shareImgUrl = data.data.shareImgUrl;
+							if(shareImgUrl){
+								for(var i in shareImgUrl){
+									var img = '<img style="width:100%; border-radius:50%;" src="'+shareImgUrl[i]+'"/>';
+			        				$("#shareImgUrl_id").children('div').eq(i).append(img);
+			        			}
+								$("#shareImgUrl_id").children('div').find("img[src!='']").parent().css({background: '#ffffff'});
+							}
+			        	}else if(data.errno == 401){
+			        		alert("过期的，请重新扫码");
+			        		window.open('wxError.html?scan=overdue', '_self');
+			        	}else{
+			        		alert("参数错误");
+			        		window.open('wxError.html', '_self');
+			        	}
+			       },
+			       error:function(data,type, err){  
+//			             console.log("ajax错误类型："+type);  
+//			             console.log(err);
+			       }
+				   });
+			 }
+			function isEmpty(data){
+				if(data == null){
+					return true;
+				}
+				if(data == undefined){
+					return true;
+				}
+				if(data == ''){
+					return true;
+				}
+				return false;
+			}
+			//点击族谱查询简单信息
+			function getSimpleAjax(pigId){
+			 	$.ajax({ 
+				   	type: 'POST', 
+				   	data: {pigId:pigId},
+				   	url: wxSimpleUrl,
+			        success: function (data) {
+			        	if(data.errno == 0){
+			        		//品种
+			        		let varieties = data.data.varieties;
+			        		//性别 0：公 1：母
+			        		let pigGender = data.data.pigGender == 0?"公":"母";
+			        		//出生
+			        		let birth = data.data.birth;
+							//出生周期
+			        		let growthCycle = data.data.growthCycle;
+			        		//父亲
+			        		let pigFather = data.data.pigFather;
+			        		//母亲
+			        		let pigMother = data.data.pigMother;
+			        		//区块链地址
+			        		let blockChain = data.data.blockChain;
+			        		//ID号码
+			        		let idNumber = data.data.idNumber;
+			        		//let s = '[身份信息]{品种：'+varieties+';性别：'+pigGender+';出生：'+birth+';父亲：'+pigFather+';母亲：'+pigMother+';区块链地址：'+blockChain+';ID号码：'+idNumber+'}';
+			        		//品种
+			        		$("#parent_varieties_id").html(varieties);
+			        		//性别 0：公 1：母
+			        		$("#parent_pigGender_id").html(pigGender);
+			        		//出生
+			        		$("#parent_birth_id").html(birth.split("T")[0]);
+			        		//生长周期
+			        		$("#parent_growthCycle_id").html(growthCycle + '天');
+			        		//父亲
+			        		$("#parent_pigFather_id").html(pigFather);
+			        		//母亲
+			        		$("#parent_pigMother_id").html(pigMother);
+			        		//区块链地址
+			        		$("#parent_blockChain_id").html(blockChain);
+			        		//ID号码
+			        		$("#parent_idNumber_id").html(idNumber);
+									$('.mask').show();
+									afterOpen();
+			        	}else if(data.errno == 401){
+			        		alert("过期的，请重新扫码");
+			        	}else{
+			        		alert("参数错误");
+			        	}
+			       },
+			       error:function(data,type, err){  
+//			             console.log("ajax错误类型："+type);  
+//			             console.log(err);
+			       }
+			    });
+			}
+		</script>
+	</head>
+	<body id="body_id">
+		<div class="animation" id="startAnimation">
+			<!--<br><br>
+			<div class="animate">
+				<div class="scan">
+							<img src="images/pig.png">
+							<div class="scaning_1">
+									<img src="images/scan_1.png">
+							</div>
+							<div class="scaning_2">
+									<img src="images/scan_2.png">
+							</div>
+				</div>
+					<div class="data_1">
+							<ul>
+								<li>检测中...</li>
+								<li>Detecting...</li>
+							</ul>
+					</div>
+					<div class="data_2">
+							<ul>
+									<li>区块链信息获取中...</li>
+									<li>信息校验中...</li>
+							</ul>
+					</div>
+					<div class="data_3">
+							<ul>
+								<li style="font-size:14px;color:#000;">您查询的区块链信息为<li>
+								<li style="color:green;" id="qrCodeId"><li>
+								<li style="font-size:16px;color:#79bc1f;font-weight:bold;" id="explain_id">二维码已在区块中获取，是正品涪陵黑猪肉</li>              
+							</ul>
+					</div>
+			</div>-->
+			
+			<!--开始-->
+			<div id="universal-preloader">
+			    <div class="preloader">
+			        <img src="images/universal-preloader.gif" alt="universal-preloader" class="universal-preloader-preloader" />
+			    </div>
+			</div>
+			<div id="wrapper">
+			<div class="dog-wrapper">
+				<div class="dog"></div>
+				<div class="dog-bubble">
+			    </div>
+			    <div class="bubble-options">
+			    	<p class="dog-bubble">
+			        	我从哪里来？
+			        </p>
+			    	<p class="dog-bubble">
+				        <br />
+			        	我的家在哪里？
+			        </p>
+			        <p class="dog-bubble">
+			        	<br />
+			        	我的父母是谁？
+			        </p>
+			        <p class="dog-bubble">
+			        	<br />
+			        	跨过山和大海
+			        </p>
+			        <p class="dog-bubble">
+			        	<br />
+			        	点击下方查看详情
+			        </p>
+			    </div>
+			</div>
+				<div class="planet"></div>
+			</div>
+			<!--结束-->
+			
+			
+			<div class="foot">
+					<p>点击了解详情</p>
+			</div>
+		</div>
+		<div class="am-container">
+			<div class="am-g">
+				<div class="main-header">
+					<img src="./images/mian_header.png" width="100%" />
+				</div>
+				<!-- 身份证 -->
+				<div class="identity-card">
+					<ul>
+						<li>品牌名称 <p id="varieties_id"></p></li>
+						<li>性别 <p id="pigGender_id"></p></li>
+						<li>出生 <p id="birth_id"></p></li>
+						<li>生长周期 <p id="growthCycle_id"></p></li>
+						<li>父亲 <p id="pigFather_id"></p></li>
+						<li>母亲 <p id="pigMother_id"></p></li>
+						<li>区块链地址 <p id="blockChain_id"></p></li>
+						<li>ID号码 <p id="idNumber_id"></p></li>
+						<img src="./images/pig-portrait.png" />
+					</ul>
+				</div>
+				<!-- 族谱溯源（id不显示，作为请求参数id发送使用，存在空的现象） -->
+				<div class="am-u-sm-12 genealogy" id="genealogy_id">
+					<div class="title">
+						<img src="./images/ball.png" alt="icon" class="ball">
+						<p class="bl-header">族谱溯源</p>
+						<p class="subtitle">TRACEABILITY OF GENEALOGY</p>
+					</div>
+					<div class="content">
+						<div>
+							<div class="grandpa_id">
+								<img src="./images/pig-purple.png" alt="">
+								<p>爷爷</p>
+							</div>
+							<div class="grandma_id">
+								<img src="./images/pig-purple.png" alt="">
+								<p>奶奶</p>
+							</div>
+							<div class="grandpa_m_id">
+								<img src="./images/pig-purple.png" alt="">
+								<p>外公</p>
+							</div>
+							<div class="grandma_m_id">
+								<img src="./images/pig-purple.png" alt="">
+								<p>外婆</p>
+							</div>
+						</div>
+						<div>
+							<div class="father_id">
+								<img src="./images/pig-red.png" alt="">
+								<p>父亲</p>
+							</div>
+							<div class="mother_id">
+								<img src="./images/pig-red.png" alt="">
+								<p>母亲</p>
+							</div>
+						</div>
+						<div>
+							<div class="brotherNumbers_id">
+								<img src="./images/pig-green.png" alt="">
+								<p>我(我有<span id="brotherNumbers_id"></span>个兄弟姐妹)</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- 360溯源 -->
+				<div class="am-u-sm-12 traceability am-animation-slide-bottom">
+					<div class="title">
+						<img src="./images/ball-green.png" alt="icon" class="ball">
+						<p class="bl-header">360溯源</p>
+						<p class="subtitle">360 TRACEABILITY</p>
+					</div>
+					<ul id="hurdles_id">
+          </ul>
+				</div>
+				<div class="am-u-sm-12 test-report am-text-center font-fff am-animation-slide-bottom">
+					<img src="images/icon_fff.png" alt="" class="padding-top-30" width="11%">
+					<p class="bl-header">检测报告</p>
+					<p class="subtitle">TEST REPORT</p>
+					<ul id="quarantine_id" class="quarantine"><li></li></ul>
+				</div>
+				<div class="strain am-u-sm-12 am-text-center font-fff">
+					<div class="strain-header margin-auto">
+						<p class="bl-header">品系描述</p>
+						<p class="subtitle">PRODUCT DESCRIPTION</p>
+						<img src="images/icon_fff.png" alt="">
+					</div>
+					<div class="strain-text margin-auto">
+						<p>根据猪种来源，猪种分为地方、培育和引入三大种类。种猪品种有涪陵黑猪、盆周山地猪、黑杜洛克猪和巴夏克猪。</p>
+						<p>涪陵黑猪：地方母猪和引入父本杂交育成的培育猪。<br>
+							盘周山地猪：原产于在四川盆周山地区的土猪。<br>
+							黑杜洛克猪：原产于美国的引入父本猪。<br>
+							巴克夏猪：原产于英国巴克郡的引入父本猪。
+						</p>
+						<p><a href="#genealogy_id">查看族谱，看看它的父系母系分别来自哪里。</a></p>
+					</div>
+				</div>
+				<div class="feed-formula am-u-sm-12 am-text-center">
+					<img src="images/icon_green.png" alt="" class="padding-top-30" width="11%">
+					<p class="bl-header">饲料配方</p>
+					<p class="subtitle">FEED FORMULA</p>
+					<ul>
+						<li><img src="images/formula_1.png" alt="" width="100"><span style="margin-top: 10px;" class="display-bl">产房饲料</span></li>
+						<li><img src="images/formula_2.png" alt="" width="100"><span style="margin-top: 10px;" class="display-bl">保育饲料</span></li>
+						<li><img src="images/formula_3.png" alt="" width="100"><span style="margin-top: 10px;" class="display-bl">育肥饲料</span></li>
+					</ul>
+					<div class="formula-text margin-auto">来自大北农集团的饲料，纯粮喂养、绿色安全根据生长调整营养比例，定时定量、营养均衡</div>
+				</div>
+				<div class="growth-environment am-u-sm-12 am-text-center font-fff">
+					<img src="images/icon_fff.png" alt="" class="padding-top-30" width="11%">
+					<p class="bl-header">生长环境</p>
+					<p class="subtitle">GROWTH ENVIRONMENT</p>
+					<ul>
+						<li><img src="images/environment_1.png" alt="" class="display-bl" width="90%"><span class="display-bl">户外圈养</span></li>
+						<li><img src="images/environment_2.png" alt="" class="display-bl" width="90%"><span class="display-bl">自然通透</span></li>
+						<li><img src="images/environment_3.png" alt="" class="display-bl" width="90%"><span class="display-bl">青山绿水</span></li>
+						<li><img src="images/environment_4.png" alt="" class="display-bl" width="90%"><span class="display-bl">种养相间</span></li>
+					</ul>
+				</div>
+				<div class="pork-segmentation am-u-sm-12 am-text-center">
+					<div style="position: relative; z-index: 1;">
+						<img src="images/icon_green.png" alt="" class="padding-top-30" width="11%">
+						<p class="bl-header" style="color: #a6d543;">猪肉分割</p>
+						<p class="subtitle" style="color: #a6d543;">PORK SEGMENTATION</p>
+					</div>
+					<img src="images/segmentation.png" alt="" width="90%" style="margin-top: -30px">
+				</div>
+				<div class="share am-text-center font-fff">
+					<div class="bg-green overflow-hid">
+						<img src="images/icon_fff.png" alt="" class="padding-top-30" width="11%">
+						<p class="bl-header">分享</p>
+						<p class="subtitle">SHARE</p>
+						<div id="shareImgUrl_id" class="share-list overflow-hid">
+							<div><p>你</p></div>
+							<div><p>待分享</p></div>
+							<div><p>待分享</p></div>
+							<div><p>待分享</p></div>
+						</div>
+					</div>
+					<div class="envelope"><p>等人分享了黑猪肉</p></div>
+					<div class="bottom-text">无论是在食物链的顶端还是末端都是生态中的一环!</div>
+				</div>
+			</div>
+		</div>
+		<div class="mask" onClick="hideMask();">
+				<div class="identity-card">
+					<ul>
+						<li>品牌名称 <p id="parent_varieties_id"></p></li>
+						<li>性别 <p id="parent_pigGender_id"></p></li>
+						<li>出生 <p id="parent_birth_id"></p></li>
+						<li>生长周期 <p id="parent_growthCycle_id"></p></li>
+						<li>父亲 <p id="parent_pigFather_id"></p></li>
+						<li>母亲 <p id="parent_pigMother_id"></p></li>
+						<li>区块链地址 <p id="parent_blockChain_id"></p></li>
+						<li>ID号码 <p id="parent_idNumber_id"></p></li>
+						<img src="./images/pig-portrait.png" />
+					</ul>
+				</div>
+		</div>
+		<script src="assets/js/jquery.min.js"></script>
+		<script src="assets/js/amazeui.min.js"></script>
+	</body>
+</html>
